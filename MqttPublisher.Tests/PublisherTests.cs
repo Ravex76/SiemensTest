@@ -131,7 +131,7 @@ namespace MqttPublisher.Tests
             _mockLogger
                 .Verify(x => x.Print(It.Is<string>(msg => msg == "Sending messages has been started...")));
             _mockLogger
-                .Verify(x => x.Print(It.Is<string>(msg => msg == "Sending messages has been broken")));
+                .Verify(x => x.Print(It.Is<string>(msg => msg == "Sending messages has been stopped")));
         }
 
         [Test]

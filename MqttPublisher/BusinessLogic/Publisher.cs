@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 
 namespace MqttPublisher
 {
+    /// <inheritdoc cref="IPublisher" />
     public class Publisher : IPublisher
     {
         private const int _DELAY = 1000;
@@ -28,11 +29,12 @@ namespace MqttPublisher
             InitializeClient();
         }
 
+        /// <inheritdoc/>
         public async Task<bool> ConnectAsync()
         {
             try
             {
-                var result = await _mqttClient.ConnectAsync(_mqttClientOptions);
+                var result = await _mqttClient.ConnectAsync(_mqttClientOptions).ConfigureAwait(false);
                 if (result.ResultCode != MqttClientConnectResultCode.Success)
                 {
                     _logger.Print($"There is no connection to the broker({brokerHost})");
@@ -49,12 +51,14 @@ namespace MqttPublisher
             return true;
         }
 
+        /// <inheritdoc/>
         public async Task DisconnectAsync()
         {
             await _mqttClient.DisconnectAsync().ConfigureAwait(false);
             _logger.Print("Disconnected from the broker");
         }
 
+        /// <inheritdoc/>
         public async Task SendMessagesAsync(CancellationToken cancellationToken)
         {
             if (!_mqttClient.IsConnected)
@@ -66,7 +70,7 @@ namespace MqttPublisher
             _logger.Print("Sending messages has been started...");
 
             var counter = 1;
-            while (counter <= int.MaxValue && !cancellationToken.IsCancellationRequested)
+            while (!cancellationToken.IsCancellationRequested)
             {
                 var sentData = new SentData
                 {
@@ -77,13 +81,20 @@ namespace MqttPublisher
                 {
                     await SendMessageAsync(sentData, cancellationToken).ConfigureAwait(false);
                     await Task.Delay(_DELAY, cancellationToken).ConfigureAwait(false);
+                    
+                    if (counter == int.MaxValue)
+                        counter = 0;
+                    
                     counter++;
                 }
                 catch (TaskCanceledException)
                 {
-                    _logger.Print("Sending messages has been broken");
+                    break;
                 }
             }
+
+            if (cancellationToken.IsCancellationRequested)
+                _logger.Print("Sending messages has been stopped");
         }
 
         private async Task SendMessageAsync(SentData sentData, CancellationToken cancellationToken)
